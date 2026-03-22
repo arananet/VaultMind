@@ -1,61 +1,178 @@
 #!/usr/bin/env bash
 # VaultMind Data Download Helper
+# =============================================================================
 # Run this script WHILE YOU STILL HAVE INTERNET to populate the vault.
+# This is your last chance to download the sum of human knowledge.
+# =============================================================================
 set -euo pipefail
 
 DATA_DIR="${1:-./data}"
 
-echo "============================================"
+echo "============================================================"
 echo "  VaultMind Data Downloader"
 echo "  Preparing your offline knowledge vault..."
-echo "============================================"
+echo "  'Knowledge is the only resource that doesn't deplete when shared.'"
+echo "============================================================"
 echo ""
 
 # Create directories
-mkdir -p "$DATA_DIR"/{pdfs,zim,tiles}
+mkdir -p "$DATA_DIR"/{pdfs,zim,tiles,guides}
 
-# --- PDFs ---
-echo "[1/3] Downloading survival reference PDFs..."
-echo "  Place your PDFs in: $DATA_DIR/pdfs/"
-echo "  Recommended sources (download manually due to licensing):"
-echo "    - 'Where There Is No Doctor' (Hesperian Health Guides)"
-echo "    - 'US Army Survival Manual FM 21-76'"
-echo "    - 'The Anarchist Cookbook' (chemistry reference)"
-echo "    - 'Pocket Ref' by Thomas Glover"
+# ============================================================================
+# [1/5] PDF Reference Library
+# ============================================================================
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[1/5] PDF Reference Library"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  Place PDFs in: $DATA_DIR/pdfs/"
+echo ""
+echo "  MEDICAL (Critical):"
+echo "    - Where There Is No Doctor (Hesperian Health Guides)"
+echo "    - Where There Is No Dentist (Hesperian Health Guides)"
+echo "    - Emergency War Surgery (NATO/Borden Institute)"
+echo "    - Tactical Combat Casualty Care Handbook"
+echo "    - WHO Essential Medicines List"
+echo ""
+echo "  SURVIVAL & FIELD CRAFT:"
+echo "    - US Army Survival Manual (FM 21-76 / FM 3-05.70)"
+echo "    - SAS Survival Handbook (John Wiseman)"
+echo "    - US Army Ranger Handbook (SH 21-76)"
+echo "    - Bushcraft 101 (Dave Canterbury)"
+echo ""
+echo "  ENGINEERING & SCIENCE:"
+echo "    - Pocket Ref (Thomas Glover)"
+echo "    - Machinery's Handbook"
+echo "    - The Knowledge: How to Rebuild Civilization (Lewis Dartnell)"
+echo "    - Practical Electronics for Inventors"
+echo "    - Chemistry: The Central Science"
+echo ""
+echo "  AGRICULTURE & FOOD:"
+echo "    - The New Self-Sufficient Gardener (John Seymour)"
+echo "    - Seed to Seed (Suzanne Ashworth)"
+echo "    - Ball Complete Book of Home Preserving"
+echo "    - Storey's Guides (Chickens, Goats, Rabbits)"
+echo ""
+echo "  ENERGY & POWER:"
+echo "    - Solar Electricity Handbook"
+echo "    - The Humanure Handbook"
+echo ""
+echo "  COMMUNICATIONS:"
+echo "    - ARRL Handbook for Radio Communications"
+echo "    - The ARRL Antenna Book"
 echo ""
 
-# --- Kiwix ZIM files ---
-echo "[2/3] Downloading Kiwix .zim files..."
+# ============================================================================
+# [2/5] Kiwix ZIM Archives
+# ============================================================================
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[2/5] Kiwix ZIM Archives"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 echo "  Download .zim files from: https://library.kiwix.org/"
-echo "  Recommended:"
-echo "    - wikipedia_en_all_nopic (text-only English Wikipedia, ~25GB)"
-echo "    - stackexchange (survival, outdoors, DIY categories)"
-echo "    - wikibooks_en_all (~1GB)"
+echo "  Place in: $DATA_DIR/zim/"
 echo ""
-echo "  Place downloaded .zim files in: $DATA_DIR/zim/"
+echo "  RECOMMENDED (Total ~50GB):"
+echo "    - wikipedia_en_all_nopic    (~25GB)  Full English Wikipedia"
+echo "    - wikibooks_en_all          (~1GB)   Textbooks and how-tos"
+echo "    - wikihow_en_all            (~3GB)   Step-by-step guides"
+echo "    - stackexchange_combined    (~10GB)  Q&A (survival, DIY, cooking)"
+echo "    - gutenberg_en_all          (~8GB)   60,000+ public domain books"
+echo "    - wikiversity_en_all        (~500MB) Educational courses"
+echo ""
+echo "  MINIMAL SET (~30GB):"
+echo "    - wikipedia_en_all_nopic    (~25GB)"
+echo "    - wikihow_en_all            (~3GB)"
+echo "    - wikibooks_en_all          (~1GB)"
 echo ""
 
-# --- Map Tiles ---
-echo "[3/3] Downloading offline map tiles..."
-echo "  Generate MBTiles for your region using:"
-echo "    https://openmaptiles.org/ or https://protomaps.com/"
-echo "  For a 100km radius, expect 500MB-2GB depending on zoom levels."
+# ============================================================================
+# [3/5] Offline Map Tiles
+# ============================================================================
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[3/5] Offline Map Tiles"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  Generate MBTiles for your region:"
+echo "    - https://protomaps.com/ (easiest)"
+echo "    - https://openmaptiles.org/"
+echo "    - osmium tool + tippecanoe for custom regions"
+echo ""
+echo "  Recommendations:"
+echo "    - 100km radius around your location"
+echo "    - Zoom levels 0-14 (overview to street level)"
+echo "    - Expected size: 500MB-2GB per region"
 echo ""
 echo "  Place .mbtiles files in: $DATA_DIR/tiles/"
 echo ""
 
-# --- Pull Ollama model ---
-echo "[+] Pulling LLM model via Ollama..."
-if command -v ollama &>/dev/null; then
-    ollama pull llama3.1:8b-instruct-q4_K_M
-    echo "  Model downloaded successfully."
-else
-    echo "  Ollama not installed. Install from https://ollama.ai"
-    echo "  Then run: ollama pull llama3.1:8b-instruct-q4_K_M"
-fi
-
+# ============================================================================
+# [4/5] LLM Models via Ollama
+# ============================================================================
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[4/5] Pulling LLM Models via Ollama"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "============================================"
+if command -v ollama &>/dev/null; then
+    echo "  Ollama detected. Pulling models..."
+    echo ""
+
+    echo "  [Primary] Llama 3.1 8B Instruct (Q4_K_M, ~4.7GB)..."
+    ollama pull llama3.1:8b-instruct-q4_K_M || echo "    WARN: Failed to pull primary model"
+
+    echo "  [Fallback] Mistral 7B Instruct (Q4_K_M, ~4.1GB)..."
+    ollama pull mistral:7b-instruct-q4_K_M || echo "    WARN: Failed to pull fallback model"
+
+    echo "  [Tiny] Phi-3 Mini (Q4_K_M, ~2.2GB)..."
+    ollama pull phi3:mini || echo "    WARN: Failed to pull tiny model"
+
+    echo ""
+    echo "  Models downloaded successfully."
+else
+    echo "  Ollama not installed."
+    echo "  Install from https://ollama.ai then run:"
+    echo "    ollama pull llama3.1:8b-instruct-q4_K_M"
+    echo "    ollama pull mistral:7b-instruct-q4_K_M"
+    echo "    ollama pull phi3:mini"
+fi
+echo ""
+
+# ============================================================================
+# [5/5] Embedding Model
+# ============================================================================
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "[5/5] Pre-downloading Embedding Model"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+if command -v python3 &>/dev/null; then
+    echo "  Downloading sentence-transformers/all-MiniLM-L6-v2..."
+    python3 -c "
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+print('  Embedding model cached successfully.')
+" 2>/dev/null || echo "  WARN: Could not pre-download embedding model. It will download on first index."
+else
+    echo "  Python3 not found. Embedding model will download on first 'vaultmind index' run."
+fi
+echo ""
+
+# ============================================================================
+# Summary
+# ============================================================================
+echo "============================================================"
 echo "  Data preparation complete."
-echo "  Next: vaultmind index --pdf-dir $DATA_DIR/pdfs"
-echo "============================================"
+echo ""
+echo "  Next steps:"
+echo "    1. Add your PDFs to $DATA_DIR/pdfs/"
+echo "    2. Download .zim files to $DATA_DIR/zim/"
+echo "    3. Generate MBTiles to $DATA_DIR/tiles/"
+echo "    4. Build the index:"
+echo "       vaultmind index --pdf-dir $DATA_DIR/pdfs --include-guides"
+echo "    5. Run diagnostics:"
+echo "       vaultmind diagnostics"
+echo "    6. Start VaultMind:"
+echo "       vaultmind serve --port 8080"
+echo ""
+echo "  After deployment, disconnect from the internet."
+echo "  You are now air-gapped. The vault is sealed."
+echo "============================================================"

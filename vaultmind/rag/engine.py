@@ -15,12 +15,38 @@ DEFAULT_INDEX_DIR = "data/vault_index"
 DEFAULT_MODEL = "llama3.1:8b-instruct-q4_K_M"
 
 
-def index_pdfs(pdf_dir: str, index_dir: str = DEFAULT_INDEX_DIR) -> int:
-    """Ingest PDFs and build the FAISS index. Returns chunk count."""
-    docs = load_pdf_directory(Path(pdf_dir))
-    if not docs:
+def index_pdfs(
+    pdf_dir: str,
+    index_dir: str = DEFAULT_INDEX_DIR,
+    include_guides: bool = False,
+    guides_dir: str = "data/guides",
+) -> int:
+    """Ingest PDFs (and optionally knowledge guides) and build the FAISS index.
+
+    Returns the total chunk count.
+    """
+    all_docs = []
+
+    # Load PDFs if directory exists and has files
+    pdf_path = Path(pdf_dir)
+    if pdf_path.is_dir():
+        docs = load_pdf_directory(pdf_path)
+        all_docs.extend(docs)
+    else:
+        logger.info("PDF directory not found: %s (skipping)", pdf_dir)
+
+    # Load bundled knowledge guides
+    if include_guides:
+        from vaultmind.services.guides import load_guides
+
+        guide_docs = load_guides(guides_dir)
+        all_docs.extend(guide_docs)
+        logger.info("Loaded %d knowledge guide documents", len(guide_docs))
+
+    if not all_docs:
         return 0
-    chunks = chunk_documents(docs)
+
+    chunks = chunk_documents(all_docs)
     build_index(chunks, index_dir)
     return len(chunks)
 
@@ -42,7 +68,17 @@ def query(
     for i, doc in enumerate(results, 1):
         source = doc.metadata.get("source_file", "unknown")
         page = doc.metadata.get("page", "?")
-        context_parts.append(f"[Source {i}: {source}, p.{page}]\n{doc.page_content}")
+        domain = doc.metadata.get("domain", "")
+        source_type = doc.metadata.get("source_type", "pdf")
+
+        if source_type == "guide":
+            context_parts.append(
+                f"[Source {i}: Guide — {domain}/{source}]\n{doc.page_content}"
+            )
+        else:
+            context_parts.append(
+                f"[Source {i}: {source}, p.{page}]\n{doc.page_content}"
+            )
 
     context = "\n\n".join(context_parts)
     prompt = format_rag_prompt(user_query, context)

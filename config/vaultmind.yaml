@@ -4,6 +4,8 @@
 # Local LLM settings
 llm:
   model: "llama3.1:8b-instruct-q4_K_M"
+  fallback_model: "mistral:7b-instruct-q4_K_M"
+  tiny_model: "phi3:mini-q4_K_M"
   ollama_host: "http://localhost:11434"
 
 # RAG settings
@@ -14,6 +16,12 @@ rag:
   chunk_overlap: 200
   embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
   top_k: 4
+
+# Knowledge guides
+guides:
+  enabled: true
+  dir: "data/guides"
+  include_in_index: true
 
 # Kiwix settings
 kiwix:
@@ -31,7 +39,24 @@ comms:
   enabled: false
   serial_port: null  # auto-detect
 
+# System monitor
+monitor:
+  enabled: true
+  check_interval_seconds: 300
+  warn_cpu_temp_c: 80
+  warn_disk_percent: 90
+  warn_battery_percent: 20
+
 # Web server
 server:
   host: "0.0.0.0"
   port: 8080
+
+# Storage (reference — configure at OS level)
+# storage:
+#   type: "zfs"           # or "mdadm", "btrfs"
+#   pool: "vault"
+#   snapshot_interval: "hourly"
+#   snapshot_retain_days: 7
+#   backup_device: "/dev/sdc1"
+#   backup_schedule: "monthly"
