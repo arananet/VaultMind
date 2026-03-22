@@ -1,0 +1,31 @@
+services:
+  vaultmind:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/pdfs:/app/data/pdfs
+      - ./data/vault_index:/app/data/vault_index
+      - ./data/tiles:/app/data/tiles
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
+  kiwix:
+    image: ghcr.io/kiwix/kiwix-serve:latest
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./data/zim:/data
+    command: /data/*.zim
+
+volumes:
+  ollama_models:

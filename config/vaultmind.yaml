@@ -1,0 +1,37 @@
+# VaultMind Configuration
+# =====================
+
+# Local LLM settings
+llm:
+  model: "llama3.1:8b-instruct-q4_K_M"
+  ollama_host: "http://localhost:11434"
+
+# RAG settings
+rag:
+  pdf_dir: "data/pdfs"
+  index_dir: "data/vault_index"
+  chunk_size: 1000
+  chunk_overlap: 200
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  top_k: 4
+
+# Kiwix settings
+kiwix:
+  enabled: true
+  url: "http://localhost:8888"
+  zim_dir: "data/zim"
+
+# GIS settings
+gis:
+  enabled: false
+  mbtiles_path: "data/tiles/local.mbtiles"
+
+# Meshtastic settings
+comms:
+  enabled: false
+  serial_port: null  # auto-detect
+
+# Web server
+server:
+  host: "0.0.0.0"
+  port: 8080
