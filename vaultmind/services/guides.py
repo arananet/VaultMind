@@ -22,6 +22,7 @@ GUIDE_DOMAINS = {
     "metalworking": "Forge Building, Blacksmithing, Tool Making, Brazing, Vehicle Repair",
     "navigation": "Compass, Celestial Navigation, Dead Reckoning, Pace Counting, Terrain",
     "security": "Community Organization, Perimeter Defense, Watch Protocols, OPSEC, Barter",
+    "radio_international": "ITU Regions, HF Band Plan, Distress Frequencies, Emergency Nets, NATO Phonetic, Q-Codes, Digital Modes",
 }
 
 

@@ -16,7 +16,7 @@ echo "============================================================"
 echo ""
 
 # Create directories
-mkdir -p "$DATA_DIR"/{pdfs,zim,tiles,guides}
+mkdir -p "$DATA_DIR"/{pdfs,zim,tiles,guides,tts_cache}
 
 # ============================================================================
 # [1/5] PDF Reference Library
@@ -117,23 +117,33 @@ if command -v ollama &>/dev/null; then
     echo "  Ollama detected. Pulling models..."
     echo ""
 
-    echo "  [Primary] Llama 3.1 8B Instruct (Q4_K_M, ~4.7GB)..."
-    ollama pull llama3.1:8b-instruct-q4_K_M || echo "    WARN: Failed to pull primary model"
+    echo "  [Primary] Qwen3 8B (Q4_K_M default, ~5.2GB)..."
+    ollama pull qwen3:8b || echo "    WARN: Failed to pull primary model"
 
-    echo "  [Fallback] Mistral 7B Instruct (Q4_K_M, ~4.1GB)..."
-    ollama pull mistral:7b-instruct-q4_K_M || echo "    WARN: Failed to pull fallback model"
+    echo "  [Lightweight] Qwen3 4B (Q4_K_M, ~2.5GB, 256K context)..."
+    ollama pull qwen3:4b || echo "    WARN: Failed to pull lightweight model"
 
-    echo "  [Tiny] Phi-3 Mini (Q4_K_M, ~2.2GB)..."
-    ollama pull phi3:mini || echo "    WARN: Failed to pull tiny model"
+    echo "  [Tiny/Edge] Qwen3 0.6B (~523MB)..."
+    ollama pull qwen3:0.6b || echo "    WARN: Failed to pull tiny model"
+
+    echo ""
+    echo "  Optional reasoning models (requires more VRAM/RAM):"
+    echo "  [Reasoning] Phi4-Reasoning 14B (~11GB, needs 16GB+ RAM)..."
+    ollama pull phi4-reasoning || echo "    WARN: Failed to pull reasoning model"
+
+    echo "  [Edge Reasoning] Phi4-Mini-Reasoning 3.8B (~3.2GB)..."
+    ollama pull phi4-mini-reasoning || echo "    WARN: Failed to pull edge reasoning model"
 
     echo ""
     echo "  Models downloaded successfully."
 else
     echo "  Ollama not installed."
     echo "  Install from https://ollama.ai then run:"
-    echo "    ollama pull llama3.1:8b-instruct-q4_K_M"
-    echo "    ollama pull mistral:7b-instruct-q4_K_M"
-    echo "    ollama pull phi3:mini"
+    echo "    ollama pull qwen3:8b              # Primary (5.2GB)"
+    echo "    ollama pull qwen3:4b              # Lightweight (2.5GB)"
+    echo "    ollama pull qwen3:0.6b            # Tiny edge (523MB)"
+    echo "    ollama pull phi4-reasoning         # Reasoning (11GB, optional)"
+    echo "    ollama pull phi4-mini-reasoning    # Edge reasoning (3.2GB, optional)"
 fi
 echo ""
 

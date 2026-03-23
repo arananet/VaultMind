@@ -12,7 +12,7 @@ from vaultmind.rag.vectorstore import build_index, load_index, search
 logger = logging.getLogger(__name__)
 
 DEFAULT_INDEX_DIR = "data/vault_index"
-DEFAULT_MODEL = "llama3.1:8b-instruct-q4_K_M"
+DEFAULT_MODEL = "qwen3:8b"
 
 
 def index_pdfs(

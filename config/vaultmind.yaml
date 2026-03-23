@@ -3,9 +3,16 @@
 
 # Local LLM settings
 llm:
-  model: "llama3.1:8b-instruct-q4_K_M"
-  fallback_model: "mistral:7b-instruct-q4_K_M"
-  tiny_model: "phi3:mini-q4_K_M"
+  # Primary: Qwen3 8B — best quality/size ratio, 5.2GB, verified on Ollama
+  model: "qwen3:8b"
+  # Fallback: Qwen3 4B — lightweight, 2.5GB, 256K context
+  fallback_model: "qwen3:4b"
+  # Tiny: Qwen3 0.6B — ultra-light edge, 523MB
+  tiny_model: "qwen3:0.6b"
+  # Reasoning: Phi4-Reasoning 14B — outperforms 70B models on structured reasoning, 11GB
+  reasoning_model: "phi4-reasoning"
+  # Edge reasoning: Phi4-Mini-Reasoning 3.8B — 3.2GB, 128K context
+  edge_reasoning_model: "phi4-mini-reasoning"
   ollama_host: "http://localhost:11434"
 
 # RAG settings
@@ -39,6 +46,40 @@ comms:
   enabled: false
   serial_port: null  # auto-detect
 
+# Database settings
+database:
+  # PostgreSQL (primary) or SQLite (edge fallback)
+  # Override with VAULTMIND_DATABASE_URL env var
+  url: "postgresql://vaultmind:vaultmind@localhost:5432/vaultmind"
+  # SQLite fallback for edge devices:
+  # url: "sqlite:///data/vaultmind.db"
+
+# Text-to-Speech
+tts:
+  # Backends tried in order: piper > chatterbox > kokoro > espeak
+  preferred_backend: "piper"
+  piper:
+    model: "en_US-lessac-medium"  # 15-65MB, CPU-friendly
+  chatterbox:
+    enabled: false  # Requires GPU, 4.5GB VRAM
+  output_dir: "data/tts_cache"
+
+# Hardware control
+hardware:
+  gpio:
+    enabled: false
+    chip: "gpiochip0"
+  i2c:
+    enabled: false
+    bus: 1
+  usb_relay:
+    enabled: false
+    vendor_id: null
+    product_id: null
+  automation:
+    enabled: false
+    rules_file: "config/automation_rules.yaml"
+
 # System monitor
 monitor:
   enabled: true
@@ -51,6 +92,7 @@ monitor:
 server:
   host: "0.0.0.0"
   port: 8080
+  open_webui: false  # Set true to proxy to Open WebUI instead of built-in React UI
 
 # Storage (reference — configure at OS level)
 # storage:

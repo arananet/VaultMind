@@ -25,7 +25,7 @@ def run_all_diagnostics(
     zim_dir: str = "data/zim",
     tiles_dir: str = "data/tiles",
     kiwix_url: str = "http://localhost:8888",
-    model: str = "llama3.1:8b-instruct-q4_K_M",
+    model: str = "qwen3:8b",
 ) -> list[DiagnosticResult]:
     """Run all diagnostic checks and return results."""
     results = []

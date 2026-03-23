@@ -1,9 +1,9 @@
 # VaultMind System Specification
 
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Status:** Active Development
 **Author:** Eduardo Arana
-**Last Updated:** 2026-03-22
+**Last Updated:** 2026-03-23
 
 ---
 
@@ -50,15 +50,29 @@ remains accessible from a single device.
 
 ### 3.1 Logic Layer — Local LLM
 
-| Property        | Value                                      |
-|-----------------|--------------------------------------------|
-| Runtime         | Ollama / llama.cpp                         |
-| Primary Model   | Llama 3.1 8B Instruct (Q4_K_M, ~4.7GB)    |
-| Fallback Model  | Mistral 7B Instruct (Q4_K_M, ~4.1GB)      |
-| Tiny Model      | Phi-3 Mini 3.8B (Q4_K_M, ~2.2GB)          |
-| Embedding Model | all-MiniLM-L6-v2 (sentence-transformers)   |
-| Device          | CPU (ARM64/x86_64), optional GPU           |
-| Response Method | S.T.A.R. (Situation, Tools, Action, Risk)  |
+| Property              | Value                                                     |
+|-----------------------|-----------------------------------------------------------|
+| Runtime               | Ollama / llama.cpp (GGUF format, Q4_K_M default quant)    |
+| Primary Model         | Qwen3 8B (`qwen3:8b`, 5.2GB) — best quality/size ratio   |
+| Lightweight Model     | Qwen3 4B (`qwen3:4b`, 2.5GB, 256K context)               |
+| Tiny/Edge Model       | Qwen3 0.6B (`qwen3:0.6b`, 523MB)                         |
+| Reasoning Model       | Phi4-Reasoning 14B (`phi4-reasoning`, 11GB)               |
+| Edge Reasoning Model  | Phi4-Mini-Reasoning 3.8B (`phi4-mini-reasoning`, 3.2GB)   |
+| Embedding Model       | all-MiniLM-L6-v2 (sentence-transformers)                  |
+| Device                | CPU (ARM64/x86_64), optional GPU                          |
+| Response Method       | S.T.A.R. (Situation, Tools, Action, Risk)                 |
+
+**Ollama Pull Commands:**
+```bash
+ollama pull qwen3:8b              # Primary (5.2GB)
+ollama pull qwen3:4b              # Lightweight (2.5GB)
+ollama pull qwen3:0.6b            # Tiny edge (523MB)
+ollama pull phi4-reasoning         # Reasoning (11GB, optional)
+ollama pull phi4-mini-reasoning    # Edge reasoning (3.2GB, optional)
+```
+
+> All model tags are verified against the Ollama library as of March 2026.
+> Default quantization is Q4_K_M (4-bit, ~96% of original quality at 30% size).
 
 ### 3.2 RAG Layer — PDF Knowledge Vault
 
@@ -126,8 +140,43 @@ indexed into the RAG pipeline alongside user PDFs.
 |                         |                           | dead reckoning, terrain association                           |
 | Security & Defense      | `guides/security/`        | Perimeter planning, night watch protocols, conflict           |
 |                         |                           | de-escalation, community organization                        |
+| International Radio     | `guides/radio_international/` | ITU regions, HF band plan, distress frequencies,         |
+|                         |                           | emergency nets, NATO phonetic, Q-codes, digital modes        |
 
-### 3.7 System Monitor — Hardware Health
+### 3.7 Database Layer — PostgreSQL / SQLite
+
+| Property        | Value                                      |
+|-----------------|--------------------------------------------|
+| Primary DB      | PostgreSQL 16 (robust, scalable)           |
+| Edge Fallback   | SQLite (zero-config, single-file)          |
+| ORM             | SQLAlchemy 2.0+                            |
+| Migrations      | Alembic (versioned schema changes)         |
+| Tables          | Document, Chunk, QueryLog, GuideEntry,     |
+|                 | SensorLog, MeshMessage, AutomationRule,    |
+|                 | TTSCache                                   |
+| Schema docs     | `GET /api/schema` and `GET /api/db/stats`  |
+
+### 3.8 TTS Layer — Offline Text-to-Speech
+
+| Property        | Value                                      |
+|-----------------|--------------------------------------------|
+| Primary (CPU)   | Piper TTS (15-65MB models, fast on ARM)    |
+| GPU Backend     | Chatterbox TTS (4.5GB VRAM, natural voice) |
+| Mid-range       | Kokoro TTS (82M params, CPU-friendly)      |
+| Fallback        | espeak-ng (any platform, robotic voice)    |
+| API             | `POST /api/tts` with auto-backend detect   |
+
+### 3.9 Hardware Control — GPIO & Automation
+
+| Property        | Value                                      |
+|-----------------|--------------------------------------------|
+| GPIO Library    | gpiod (modern Linux GPIO, not RPi.GPIO)    |
+| Sensors         | I2C (temperature, humidity, pressure)      |
+| Power Monitor   | ADC for solar voltage, battery level       |
+| Relay Control   | USB relay boards for 12V/120V switching    |
+| Automation      | Rule engine with sensor-triggered actions  |
+
+### 3.10 System Monitor — Hardware Health
 
 | Property        | Value                                      |
 |-----------------|--------------------------------------------|
@@ -140,44 +189,131 @@ indexed into the RAG pipeline alongside user PDFs.
 
 ## 4. Recommended Base Hardware
 
-### 4.1 Primary Node — "The Vault"
+### 4.1 Hardware Tiers
 
-The core VaultMind appliance. Optimized for low-power, high-reliability
-operation on a single device.
+VaultMind supports four hardware tiers, from ultra-low-power edge to
+full reasoning workstation. Choose based on your power budget and model needs.
 
-| Component        | Recommended                    | Budget Alternative            | Notes                                     |
-|------------------|--------------------------------|-------------------------------|--------------------------------------------|
-| **SBC/Computer** | Intel N100 Mini PC (16GB RAM)  | Raspberry Pi 5 (8GB)         | N100 runs 8B models at ~8 tok/s            |
-| **Storage**      | 2x 2TB NVMe SSD (ZFS mirror)  | 2x 1TB SATA SSD (mdadm RAID1) | Mirror = survive one drive failure        |
-| **Backup**       | 1x 4TB USB HDD (cold backup)  | 1x 2TB USB HDD               | Monthly full backup of vault               |
-| **Power**        | 12V 200Ah LiFePO4 battery     | 12V 100Ah AGM battery        | LiFePO4 = 3000+ cycles, 10yr lifespan     |
-| **Solar**        | 200W monocrystalline panel     | 100W portable panel           | N100 draws ~15W, Pi5 draws ~8W             |
-| **Charge Ctrl**  | Victron SmartSolar MPPT 75/15  | EPever Tracer 10A MPPT       | MPPT > PWM for efficiency                  |
-| **Inverter**     | 300W pure sine wave            | 150W modified sine wave       | Pure sine for electronics safety           |
-| **UPS**          | 12V DC UPS (mini-UPS board)    | Manual switchover             | Prevents data corruption during clouds     |
-| **Networking**   | USB Ethernet + WiFi AP         | Built-in WiFi                 | Local AP for tablets/phones to query        |
-| **Radio**        | Heltec V3 LoRa (Meshtastic)   | TTGO T-Beam                   | Off-grid messaging to other survivors      |
-| **Enclosure**    | Pelican 1550 (waterproof)      | Ammo can + foam               | EMP/water/dust protection                  |
+#### Tier 1 — "The Satchel" (Mobile/Edge)
 
-**Power Budget (N100 build):**
-- Continuous draw: ~15-25W (VaultMind + Ollama idle/inference)
-- 200Ah LiFePO4 at 12V = 2,400Wh usable capacity
-- Runtime without solar: ~4-7 days continuous
-- With 200W panel (5 sun-hours/day): indefinite operation
-
-### 4.2 Mobile Node — "The Satchel"
-
-Lightweight variant for field operations or as a secondary node.
+Runs tiny models only. For field operations or as a relay node.
 
 | Component        | Recommended                    | Notes                        |
 |------------------|--------------------------------|------------------------------|
-| **Computer**     | Raspberry Pi 5 (8GB)           | Runs Phi-3 Mini at ~5 tok/s  |
+| **Computer**     | Raspberry Pi 5 (8GB)           | ARM64, ~8W draw              |
+| **Max Model**    | `qwen3:0.6b` (523MB)          | ~5 tok/s on CPU              |
 | **Storage**      | 1TB microSD + 1TB USB SSD     | microSD for OS, SSD for data |
 | **Power**        | 100Wh USB-C power bank        | ~12 hours runtime            |
 | **Solar**        | 28W foldable USB-C panel      | Trickle charge in the field  |
 | **Radio**        | Heltec V3 LoRa                | Mesh link back to base vault |
-| **Display**      | 7" touchscreen (optional)     | Or use phone via WiFi AP     |
 | **Case**         | Pelican 1200 micro             | Fits in a backpack           |
+
+**Power Budget:** ~8W continuous → 100Wh bank = ~12h runtime
+
+#### Tier 2 — "The Vault" (Primary Node, CPU-only)
+
+Runs 8B models on CPU. The default VaultMind appliance.
+
+| Component        | Recommended                    | Budget Alternative              | Notes                                     |
+|------------------|--------------------------------|---------------------------------|--------------------------------------------|
+| **Computer**     | Intel N100 Mini PC (16GB RAM)  | Raspberry Pi 5 (8GB)           | N100 runs `qwen3:8b` at ~8 tok/s          |
+| **Max Model**    | `qwen3:8b` (5.2GB)            | `qwen3:4b` (2.5GB)             | 8B needs ~8GB RAM for inference            |
+| **Storage**      | 2x 2TB NVMe SSD (ZFS mirror)  | 2x 1TB SATA SSD (mdadm RAID1) | Mirror = survive one drive failure         |
+| **Backup**       | 1x 4TB USB HDD (cold backup)  | 1x 2TB USB HDD                 | Monthly full backup of vault               |
+| **Power**        | 12V 200Ah LiFePO4 battery     | 12V 100Ah AGM battery          | LiFePO4 = 3000+ cycles, 10yr lifespan     |
+| **Solar**        | 200W monocrystalline panel     | 100W portable panel             | N100 draws ~15W, Pi5 draws ~8W            |
+| **Charge Ctrl**  | Victron SmartSolar MPPT 75/15  | EPever Tracer 10A MPPT         | MPPT > PWM for efficiency                 |
+| **Inverter**     | 300W pure sine wave            | 150W modified sine wave         | Pure sine for electronics safety           |
+| **UPS**          | 12V DC UPS (mini-UPS board)    | Manual switchover               | Prevents data corruption during clouds     |
+| **Networking**   | USB Ethernet + WiFi AP         | Built-in WiFi                   | Local AP for tablets/phones to query       |
+| **Radio**        | Heltec V3 LoRa (Meshtastic)   | TTGO T-Beam                     | Off-grid messaging to other survivors     |
+| **Enclosure**    | Pelican 1550 (waterproof)      | Ammo can + foam                 | EMP/water/dust protection                 |
+
+**Power Budget:** ~15-25W continuous → 200Ah LiFePO4 (2,400Wh) = 4-7 days without solar, indefinite with 200W panel (5 sun-hours/day)
+
+#### Tier 3 — "The Forge" (ITX + GPU, Reasoning-capable)
+
+**Minimum for reasoning models.** Runs `phi4-reasoning` (14B) and larger models
+with GPU acceleration. This is the recommended tier if you need structured
+reasoning, complex medical/chemistry queries, or multi-step problem solving.
+
+| Component        | Recommended                           | Notes                                          |
+|------------------|---------------------------------------|-------------------------------------------------|
+| **Motherboard**  | Mini-ITX (AM5 or LGA1700)            | Compact form factor, single PCIe x16 slot       |
+| **CPU**          | AMD Ryzen 5 7600 or Intel i5-13400   | Low TDP (65W), adequate for orchestration        |
+| **RAM**          | 32GB DDR5 (minimum)                  | 14B models need ~16GB system RAM headroom        |
+| **GPU**          | NVIDIA RTX 4060 Ti 16GB              | 16GB VRAM runs `phi4-reasoning` (14B) natively   |
+|                  | *Budget:* RTX 4060 8GB               | Runs 8B models on GPU, 14B needs offloading      |
+|                  | *Maximum:* RTX 4070 Ti Super 16GB    | Faster inference, same 16GB VRAM                 |
+| **Max Model**    | `phi4-reasoning` (14B, 11GB)         | Fits in 16GB VRAM with room for KV cache         |
+| **Storage**      | 2x 2TB NVMe SSD (ZFS mirror)        | One M.2 on board + one via PCIe adapter          |
+| **PSU**          | 450W 80+ Gold SFX                    | Efficient, fits ITX cases                        |
+| **Case**         | Fractal Ridge or NR200               | Good airflow, portable-ish                       |
+| **Cooling**      | Noctua NH-L12S or similar            | Low-profile, quiet, reliable                     |
+| **UPS**          | APC Back-UPS 600VA                   | ~15min runtime for graceful shutdown             |
+
+**Power Budget:**
+| State              | Draw     | Notes                                |
+|--------------------|----------|--------------------------------------|
+| Idle               | ~65W     | CPU + GPU idle + NVMe                |
+| Inference (8B)     | ~120W    | GPU active, moderate load            |
+| Inference (14B)    | ~180W    | Full GPU load + CPU orchestration    |
+| Peak (indexing)    | ~220W    | CPU + GPU + disk I/O during ingest   |
+
+**Solar sizing for Tier 3:**
+- 200Ah LiFePO4 (2,400Wh) + 400W solar panel array
+- Runtime without solar: ~10-15 hours (inference duty cycle ~50%)
+- With 400W panel (5 sun-hours): sustainable at 50% duty cycle
+- Recommendation: schedule heavy inference during daylight hours
+
+**Reasoning Model Minimum Requirements:**
+
+| Model                     | `ollama pull` command       | Size   | Min VRAM | Min RAM | Tokens/s (RTX 4060 Ti) |
+|---------------------------|-----------------------------|--------|----------|---------|------------------------|
+| Phi4-Reasoning 14B        | `phi4-reasoning`            | 11GB   | 16GB     | 32GB    | ~25 tok/s              |
+| Phi4-Reasoning Plus 14B   | `phi4-reasoning:plus`       | 11GB   | 16GB     | 32GB    | ~25 tok/s              |
+| Phi4-Mini-Reasoning 3.8B  | `phi4-mini-reasoning`       | 3.2GB  | 8GB      | 16GB    | ~45 tok/s              |
+| DeepSeek-R1 8B            | `deepseek-r1`               | 5.2GB  | 8GB      | 16GB    | ~35 tok/s              |
+| DeepSeek-R1 14B           | `deepseek-r1:14b`           | 9GB    | 16GB     | 32GB    | ~20 tok/s              |
+| Qwen3 14B                 | `qwen3:14b`                 | 9.3GB  | 16GB     | 32GB    | ~22 tok/s              |
+
+> Phi4-Reasoning 14B outperforms DeepSeek-R1 Distill Llama 70B (a 5x larger
+> model) on structured reasoning benchmarks. It is the recommended reasoning
+> model for the ITX+GPU tier.
+
+#### Tier 4 — "The Citadel" (Full Workstation)
+
+For communities running large models or serving multiple concurrent users.
+
+| Component        | Recommended                           | Notes                                          |
+|------------------|---------------------------------------|-------------------------------------------------|
+| **CPU**          | AMD Ryzen 9 7900X or Intel i7-13700  | Higher core count for concurrent requests        |
+| **RAM**          | 64GB DDR5                            | Run 30B+ models with CPU offloading              |
+| **GPU**          | NVIDIA RTX 4090 24GB                 | Runs 30B models, 14B models at high throughput   |
+| **Max Model**    | `qwen3:30b` (19GB, MoE 30B-A3B)     | MoE = only 3B params active per token            |
+| **Storage**      | 4x 2TB NVMe (ZFS RAIDZ1)            | Triple redundancy                                |
+| **PSU**          | 850W 80+ Platinum                    | Headroom for GPU spikes                          |
+| **Power Draw**   | 150-450W depending on load           | Requires dedicated solar/generator setup         |
+
+### 4.2 GPU Selection Guide
+
+| GPU                       | VRAM  | TDP   | Max Model (Q4_K_M)  | Price Tier | Recommendation       |
+|---------------------------|-------|-------|----------------------|------------|----------------------|
+| RTX 4060 8GB              | 8GB   | 115W  | 8B models            | Budget     | Edge GPU node        |
+| RTX 4060 Ti 16GB          | 16GB  | 165W  | 14B models           | Mid        | **Best for reasoning** |
+| RTX 4070 Ti Super 16GB    | 16GB  | 285W  | 14B models (faster)  | High       | Fast reasoning       |
+| RTX 4090 24GB             | 24GB  | 450W  | 30B models           | Premium    | Community server     |
+
+**Rule of thumb:** Model size in GB should be ≤ 80% of VRAM to leave room for
+KV cache and runtime overhead. For a 14B model at Q4_K_M (~9-11GB), you need
+16GB VRAM minimum.
+
+### 4.3 Mobile Node — "The Satchel" (Tier 1 detail)
+
+See Tier 1 above. Additional notes:
+- Use `qwen3:0.6b` or `qwen3:4b` (if 8GB RAM available)
+- Pair with a phone/tablet via local WiFi AP for the UI
+- 7" touchscreen optional for standalone use
 
 ### 4.3 Storage Architecture
 
@@ -352,6 +488,23 @@ Get all topics in a knowledge guide domain.
 
 ### GET /api/status
 System health: disk, battery, CPU temp, RAID status.
+
+### POST /api/tts
+Synthesize text to speech using the best available offline backend.
+
+**Request:**
+```json
+{
+  "text": "Boil water for at least one minute.",
+  "backend": "auto"
+}
+```
+
+### GET /api/schema
+Human-readable database schema documentation.
+
+### GET /api/db/stats
+Row counts for all database tables.
 
 ---
 

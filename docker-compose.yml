@@ -4,13 +4,14 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data/pdfs:/app/data/pdfs
-      - ./data/vault_index:/app/data/vault_index
-      - ./data/tiles:/app/data/tiles
+      - ./data:/app/data
+      - ./config:/app/config
     depends_on:
       - ollama
+      - postgres
     environment:
       - OLLAMA_HOST=http://ollama:11434
+      - VAULTMIND_DATABASE_URL=postgresql://vaultmind:vaultmind@postgres:5432/vaultmind
 
   ollama:
     image: ollama/ollama:latest
@@ -18,6 +19,24 @@ services:
       - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: vaultmind
+      POSTGRES_PASSWORD: vaultmind
+      POSTGRES_DB: vaultmind
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:latest
@@ -27,5 +46,21 @@ services:
       - ./data/zim:/data
     command: /data/*.zim
 
+  # Optional: Open WebUI as alternative frontend
+  # Uncomment to use instead of or alongside the built-in React UI
+  # open-webui:
+  #   image: ghcr.io/open-webui/open-webui:main
+  #   ports:
+  #     - "3000:8080"
+  #   environment:
+  #     - OLLAMA_BASE_URL=http://ollama:11434
+  #     - WEBUI_AUTH=false
+  #   volumes:
+  #     - open_webui_data:/app/backend/data
+  #   depends_on:
+  #     - ollama
+
 volumes:
   ollama_models:
+  pgdata:
+  # open_webui_data:

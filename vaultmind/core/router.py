@@ -20,7 +20,7 @@ class QueryResult:
 def route_query(
     query: str,
     index_dir: str = "data/vault_index",
-    model: str = "llama3.1:8b-instruct-q4_K_M",
+    model: str = "qwen3:8b",
     kiwix_url: str = "http://localhost:8888",
     guides_dir: str = "data/guides",
     use_rag: bool = True,

@@ -17,18 +17,21 @@ to exist, the sum of human ingenuity remains accessible from a single device.
 
 | Layer     | Service                | Data Source                                                        |
 |-----------|------------------------|--------------------------------------------------------------------|
-| Logic     | Ollama / Llama.cpp     | Llama 3.1 8B (Quantized to Q4_K_M for speed)                      |
+| Logic     | Ollama / Llama.cpp     | Qwen3 8B (Q4_K_M, 5.2GB) — verified Ollama tag                   |
 | Search    | Kiwix                  | `.zim` files (Wikipedia, StackExchange, Project Gutenberg)         |
 | Space     | MapLibre / MBTiles     | OpenStreetMap (Local MBTiles for your 100km radius)                |
 | Vitals    | RAG Engine             | PDF library + bundled survival knowledge guides                    |
 | Comms     | Meshtastic Integration | Local LoRa node monitoring for off-grid messaging                  |
 | Monitor   | System Monitor         | CPU temp, disk health, battery, RAID status                        |
+| Voice     | Piper / Chatterbox TTS | Offline text-to-speech (CPU or GPU)                                |
+| Database  | PostgreSQL / SQLite    | Query logs, sensor data, automation rules, TTS cache               |
+| Hardware  | gpiod / I2C / USB      | GPIO control, sensor reading, relay automation                     |
 
 ---
 
 ## Bundled Knowledge Guides
 
-VaultMind ships with structured survival guides across 10 critical domains,
+VaultMind ships with structured survival guides across 11 critical domains,
 all indexed into the RAG pipeline for instant retrieval:
 
 | Domain                  | Key Topics                                                              |
@@ -54,38 +57,25 @@ all indexed into the RAG pipeline for instant retrieval:
 |                         | dead reckoning, pace counting, terrain association                       |
 | **Security**            | Community organization, perimeter defense, watch protocols,              |
 |                         | conflict de-escalation, OPSEC, barter/trade, mental health               |
+| **International Radio** | ITU regions, international HF band plan, distress frequencies,          |
+|                         | emergency nets (IARN, SATERN), NATO phonetic, Q-codes, digital modes     |
 
 ---
 
 ## Recommended Base Hardware
 
-### Primary Node — "The Vault"
+VaultMind supports 4 hardware tiers. See [SPEC.md](SPEC.md) for full details.
 
-| Component        | Recommended                      | Budget Alternative              |
-|------------------|----------------------------------|---------------------------------|
-| **Computer**     | Intel N100 Mini PC (16GB RAM)    | Raspberry Pi 5 (8GB)           |
-| **Storage**      | 2x 2TB NVMe SSD (ZFS mirror)    | 2x 1TB SATA SSD (mdadm RAID1) |
-| **Cold Backup**  | 1x 4TB USB HDD                  | 1x 2TB USB HDD                |
-| **Battery**      | 12V 200Ah LiFePO4               | 12V 100Ah AGM                  |
-| **Solar Panel**  | 200W monocrystalline             | 100W portable panel            |
-| **Charge Ctrl**  | Victron SmartSolar MPPT 75/15    | EPever Tracer 10A MPPT         |
-| **UPS**          | 12V DC mini-UPS board            | Manual switchover              |
-| **Radio**        | Heltec V3 LoRa (Meshtastic)     | TTGO T-Beam                    |
-| **Enclosure**    | Pelican 1550 (waterproof)        | Ammo can + foam                |
+| Tier | Name           | Computer                  | Max Model                     | Power Draw  |
+|------|----------------|---------------------------|-------------------------------|-------------|
+| 1    | "The Satchel"  | Raspberry Pi 5 (8GB)      | `qwen3:0.6b` (523MB)         | ~8W         |
+| 2    | "The Vault"    | Intel N100 Mini PC (16GB) | `qwen3:8b` (5.2GB)           | ~15-25W     |
+| 3    | "The Forge"    | Mini-ITX + RTX 4060 Ti    | `phi4-reasoning` (14B, 11GB) | ~65-220W    |
+| 4    | "The Citadel"  | Workstation + RTX 4090    | `qwen3:30b` (19GB)           | ~150-450W   |
 
-**Power Budget:** N100 draws ~15-25W. With 200Ah LiFePO4 + 200W solar panel,
-the system runs indefinitely with 5+ sun-hours/day, or 4-7 days without solar.
-
-### Mobile Node — "The Satchel"
-
-| Component     | Recommended                 | Notes                          |
-|---------------|-----------------------------|---------------------------------|
-| **Computer**  | Raspberry Pi 5 (8GB)        | Runs Phi-3 Mini at ~5 tok/s    |
-| **Storage**   | 1TB microSD + 1TB USB SSD   | microSD for OS, SSD for data   |
-| **Power**     | 100Wh USB-C power bank      | ~12 hours runtime              |
-| **Solar**     | 28W foldable USB-C panel    | Trickle charge in the field    |
-| **Radio**     | Heltec V3 LoRa              | Mesh link back to base vault   |
-| **Case**      | Pelican 1200 micro          | Fits in a backpack             |
+**Tier 3 is the minimum for reasoning models.** The RTX 4060 Ti 16GB runs
+`phi4-reasoning` (14B) natively and outperforms many 70B models on structured
+reasoning tasks.
 
 ### Storage Redundancy Strategy
 
@@ -115,10 +105,12 @@ long-term data integrity without internet access to re-download anything.
 pip install -e .
 ```
 
-### Download a Model
+### Download Models
 
 ```bash
-ollama pull llama3.1:8b-instruct-q4_K_M
+ollama pull qwen3:8b              # Primary (5.2GB)
+ollama pull qwen3:4b              # Lightweight (2.5GB)
+ollama pull phi4-reasoning         # Reasoning (11GB, optional, needs GPU)
 ```
 
 ### Download Data (While You Still Have Internet)
@@ -183,9 +175,15 @@ VaultMind/
 │   ├── search/                # Kiwix .zim file search integration
 │   ├── gis/                   # Offline map tile serving (MBTiles/MapLibre)
 │   ├── comms/                 # Meshtastic LoRa integration
-│   └── services/              # Guide indexer, system monitor, diagnostics
+│   ├── services/              # Guide indexer, system monitor, diagnostics
+│   ├── web/                   # Flask app factory + REST API blueprint
+│   ├── db/                    # PostgreSQL/SQLite ORM, migrations, schema docs
+│   ├── tts/                   # Offline TTS (Piper, Chatterbox, Kokoro, espeak)
+│   └── hardware/              # GPIO, I2C sensors, USB relays, automation engine
+├── frontend/                  # React 19 + Vite UI (builds to vaultmind/static/)
+├── alembic/                   # Database migration versions
 ├── data/
-│   ├── guides/                # 10 survival domain knowledge guides
+│   ├── guides/                # 11 survival domain knowledge guides
 │   │   ├── medicine/          # Field medicine, antibiotics, pain management
 │   │   ├── chemistry/         # Soap, disinfectants, activated charcoal
 │   │   ├── energy/            # Gasification, biodiesel, ethanol, solar
@@ -195,7 +193,8 @@ VaultMind/
 │   │   ├── communications/    # HAM radio, antennas, Morse code
 │   │   ├── metalworking/      # Forge, blacksmithing, vehicle repair
 │   │   ├── navigation/        # Celestial nav, compass, dead reckoning
-│   │   └── security/          # Perimeter defense, community, OPSEC
+│   │   ├── security/          # Perimeter defense, community, OPSEC
+│   │   └── radio_international/ # ITU regions, HF bands, emergency nets
 │   ├── pdfs/                  # Your survival manuals (user-provided)
 │   ├── zim/                   # Kiwix .zim archives
 │   └── tiles/                 # MBTiles map files
