@@ -4,6 +4,7 @@ import { Outlet, NavLink } from "react-router-dom";
 const NAV_ITEMS = [
   { path: "/", label: "Query Vault", icon: ">" },
   { path: "/guides", label: "Guides", icon: "#" },
+  { path: "/map", label: "Offline Map", icon: "@" },
   { path: "/diagnostics", label: "Diagnostics", icon: "!" },
 ];
 

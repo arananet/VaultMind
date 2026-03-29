@@ -36,9 +36,24 @@ kiwix:
   url: "http://localhost:8888"
   zim_dir: "data/zim"
 
-# GIS settings
+# GIS / Offline Maps settings (Maps.me / Organic Maps compatible)
+# ---------------------------------------------------------------
+# VaultMind serves offline map tiles directly from MBTiles files.
+# Compatible with tile data from:
+#   - Protomaps:    https://protomaps.com/
+#   - OpenMapTiles: https://openmaptiles.org/
+#   - Organic Maps region packs: https://organicmaps.app/downloads
+#
+# Tile format:
+#   pbf  — vector tiles (best quality, rendered client-side with MapLibre GL)
+#   png  — raster tiles (simpler, larger files)
+#
+# Exposed endpoints when a valid mbtiles_path is set:
+#   GET /api/map/metadata        — bounds, zoom range, attribution
+#   GET /api/map/tiles/{z}/{x}/{y} — individual tile data
+#   /map                         — interactive MapLibre GL JS viewer
 gis:
-  enabled: false
+  enabled: true
   mbtiles_path: "data/tiles/local.mbtiles"
 
 # Meshtastic settings

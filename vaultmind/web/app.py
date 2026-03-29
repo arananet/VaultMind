@@ -38,6 +38,8 @@ def create_app(config: dict | None = None) -> Flask:
         VAULTMIND_KIWIX_URL=os.environ.get("VAULTMIND_KIWIX_URL", "http://localhost:8888"),
         VAULTMIND_GUIDES_DIR=os.environ.get("VAULTMIND_GUIDES_DIR", "data/guides"),
         VAULTMIND_DATABASE_URL=os.environ.get("VAULTMIND_DATABASE_URL", "sqlite:///data/vaultmind.db"),
+        # Offline maps (Maps.me / Organic Maps compatible)
+        VAULTMIND_MBTILES_PATH=os.environ.get("VAULTMIND_MBTILES_PATH", "data/tiles/local.mbtiles"),
     )
 
     if config:

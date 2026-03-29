@@ -48,8 +48,9 @@ def run_all_diagnostics(
     # 6. Check ZIM files
     results.append(_check_zim(zim_dir))
 
-    # 7. Check map tiles
+    # 7. Check map tiles (directory) + offline map provider
     results.append(_check_tiles(tiles_dir))
+    results.append(_check_offline_maps(tiles_dir))
 
     # 8. Check disk space
     results.append(_check_disk_space())
@@ -162,6 +163,44 @@ def _check_tiles(tiles_dir: str) -> DiagnosticResult:
         total_gb = sum(f.stat().st_size for f in tiles) / (1024**3)
         return DiagnosticResult("Map Tiles", "ok", f"{len(tiles)} tile files ({total_gb:.1f} GB)")
     return DiagnosticResult("Map Tiles", "warn", "No MBTiles files found for offline maps")
+
+
+def _check_offline_maps(tiles_dir: str) -> DiagnosticResult:
+    """Check that at least one MBTiles file is readable by OfflineMapProvider."""
+    from vaultmind.gis.mapsme import get_provider
+
+    path = Path(tiles_dir)
+    tiles = list(path.glob("*.mbtiles")) if path.is_dir() else []
+    if not tiles:
+        return DiagnosticResult(
+            "Offline Maps (Maps.me)",
+            "warn",
+            "No MBTiles files found. Download a region from protomaps.com or organicmaps.app",
+        )
+
+    # Try the first file
+    candidate = tiles[0]
+    provider = get_provider(candidate)
+    if provider is None:
+        return DiagnosticResult(
+            "Offline Maps (Maps.me)", "fail",
+            f"Found {candidate.name} but could not open it",
+        )
+    try:
+        info = provider.get_info()
+        return DiagnosticResult(
+            "Offline Maps (Maps.me)", "ok",
+            f"{info['name']} · {info['format'].upper()} tiles "
+            f"· zoom {info['min_zoom']}–{info['max_zoom']} "
+            f"· {len(tiles)} file(s)",
+        )
+    except Exception as exc:
+        return DiagnosticResult(
+            "Offline Maps (Maps.me)", "warn",
+            f"MBTiles opened but metadata incomplete: {exc}",
+        )
+    finally:
+        provider.close()
 
 
 def _check_disk_space() -> DiagnosticResult:

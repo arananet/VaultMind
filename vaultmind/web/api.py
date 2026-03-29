@@ -8,6 +8,10 @@ All endpoints follow REST conventions:
 - POST /api/tts      — Text-to-speech synthesis
 - GET  /api/schema   — Database schema documentation
 - GET  /api/db/stats  — Database table statistics
+
+Offline Maps (Maps.me / Organic Maps compatible):
+- GET  /api/map/metadata        — Map bounds, zoom levels, attribution
+- GET  /api/map/tiles/<z>/<x>/<y> — Serve a single map tile from MBTiles
 """
 
 from __future__ import annotations
@@ -138,6 +142,61 @@ def db_stats():
         return jsonify(stats)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/map/metadata")
+def map_metadata():
+    """Return offline map metadata (bounds, zoom levels, attribution)."""
+    from vaultmind.gis.mapsme import get_provider
+
+    mbtiles_path = current_app.config.get("VAULTMIND_MBTILES_PATH")
+    provider = get_provider(mbtiles_path)
+    if provider is None:
+        return jsonify({
+            "error": "No offline map configured. "
+                     "Set gis.mbtiles_path in vaultmind.yaml or "
+                     "VAULTMIND_MBTILES_PATH environment variable.",
+            "available": False,
+        }), 404
+
+    try:
+        info = provider.get_info()
+        info["available"] = True
+        return jsonify(info)
+    finally:
+        provider.close()
+
+
+@api_bp.route("/map/tiles/<int:z>/<int:x>/<int:y>")
+def map_tile(z: int, x: int, y: int):
+    """Serve a single offline map tile from the configured MBTiles file."""
+    from flask import abort
+    from vaultmind.gis.mapsme import get_provider
+
+    mbtiles_path = current_app.config.get("VAULTMIND_MBTILES_PATH")
+    provider = get_provider(mbtiles_path)
+    if provider is None:
+        abort(503)
+
+    try:
+        tile_data = provider.get_tile(z, x, y)
+        if tile_data is None:
+            abort(404)
+
+        fmt = provider.get_tile_format()
+        content_types = {
+            "pbf": "application/x-protobuf",
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "webp": "image/webp",
+        }
+        content_type = content_types.get(fmt, "application/octet-stream")
+        headers = {"Access-Control-Allow-Origin": "*"}
+        if fmt == "pbf":
+            headers["Content-Encoding"] = "gzip"
+        return Response(tile_data, content_type=content_type, headers=headers)
+    finally:
+        provider.close()
 
 
 def _log_query(query_text: str, result, latency_ms: int):
